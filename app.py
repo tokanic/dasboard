@@ -3,7 +3,7 @@ import pandas as pd
 import plotly.express as px
 from binance.client import Client
 from binance.exceptions import BinanceAPIException, BinanceRequestException
-import random
+from datetime import datetime, timedelta
 
 # Set Streamlit page configuration
 st.set_page_config(page_title="Binance Clone Dashboard", layout="wide")
@@ -32,10 +32,10 @@ def fetch_account_summary():
         account_info = client.futures_account_balance()
         margin_info = client.futures_account()
         balance_data = {
-            "Balance": round(float(account_info[0]["balance"]), 2),
-            "Unrealized PNL": round(float(margin_info["totalUnrealizedProfit"]), 2),
-            "Margin Balance": round(float(margin_info["totalMarginBalance"]), 2),
-            "Available Balance": round(float(margin_info["availableBalance"]), 2),
+            "Balance": round(float(account_info[0]["balance"].strip()), 2),
+            "Unrealized PNL": round(float(margin_info["totalUnrealizedProfit"].strip()), 2),
+            "Margin Balance": round(float(margin_info["totalMarginBalance"].strip()), 2),
+            "Available Balance": round(float(margin_info["availableBalance"].strip()), 2),
         }
         return balance_data
     except Exception as e:
@@ -55,9 +55,9 @@ def fetch_trade_history():
             {
                 "Symbol": trade["symbol"],
                 "Side": trade["side"],
-                "Price": trade["price"],
-                "Quantity": trade["qty"],
-                "PNL": trade["realizedPnl"],
+                "Price": float(trade["price"]),
+                "Quantity": float(trade["qty"]),
+                "PNL": float(trade["realizedPnl"]),
                 "Time": pd.to_datetime(trade["time"], unit="ms"),
             }
             for trade in trades
@@ -74,10 +74,10 @@ def fetch_positions():
         positions = [
             {
                 "Symbol": pos["symbol"],
-                "Size": pos["positionAmt"],
-                "Entry Price": pos["entryPrice"],
-                "Mark Price": pos.get("markPrice", "N/A"),
-                "PNL": pos["unrealizedProfit"],
+                "Size": float(pos["positionAmt"]),
+                "Entry Price": float(pos["entryPrice"]),
+                "Mark Price": float(pos.get("markPrice", 0)),
+                "PNL": float(pos["unrealizedProfit"]),
             }
             for pos in account_info["positions"]
             if float(pos["positionAmt"]) != 0
@@ -87,20 +87,6 @@ def fetch_positions():
         st.error(f"Error fetching positions: {e}")
         return pd.DataFrame()
 
-# Fetching top profit and loss positions
-def get_top_positions():
-    try:
-        positions_data = fetch_positions()
-        if positions_data.empty:
-            return pd.DataFrame(), pd.DataFrame()
-        positions_data["PNL"] = positions_data["PNL"].astype(float)
-        top_profit = positions_data.nlargest(5, "PNL")
-        top_loss = positions_data.nsmallest(5, "PNL")
-        return top_profit, top_loss
-    except Exception as e:
-        st.error(f"Error fetching top positions: {e}")
-        return pd.DataFrame(), pd.DataFrame()
-
 # Fetching open orders
 def fetch_open_orders():
     try:
@@ -108,8 +94,8 @@ def fetch_open_orders():
         open_orders = [
             {
                 "Symbol": order["symbol"],
-                "Price": order["price"],
-                "Quantity": order["origQty"],
+                "Price": float(order["price"]),
+                "Quantity": float(order["origQty"]),
                 "Type": order["type"],
                 "Side": order["side"],
                 "Status": order["status"],
@@ -121,44 +107,48 @@ def fetch_open_orders():
         st.error(f"Error fetching open orders: {e}")
         return pd.DataFrame()
 
-# Fetching order history
-def fetch_order_history():
+# Fetching PNL Data and Calculating Metrics
+def fetch_pnl_data():
     try:
-        history = client.futures_account_trades()
-        order_history = [
+        trades = client.futures_account_trades()
+        pnl_data = [
             {
                 "Symbol": trade["symbol"],
-                "Side": trade["side"],
-                "Price": trade["price"],
-                "Quantity": trade["qty"],
-                "Commission": trade["commission"],
-                "Time": pd.to_datetime(trade["time"], unit="ms"),
+                "PNL": float(trade["realizedPnl"]),
+                "Date": pd.to_datetime(trade["time"], unit="ms").date(),
             }
-            for trade in history
+            for trade in trades
         ]
-        return pd.DataFrame(order_history)
+        df = pd.DataFrame(pnl_data)
+        if df.empty:
+            st.warning("No PNL data available.")
+            return pd.DataFrame()
+
+        # Group by date and calculate daily PNL
+        df_grouped = df.groupby("Date").agg({"PNL": "sum"}).reset_index()
+        df_grouped["Cumulative PNL"] = df_grouped["PNL"].cumsum()
+        return df_grouped
     except (BinanceAPIException, BinanceRequestException) as e:
-        st.error(f"Error fetching order history: {e}")
+        st.error(f"Error fetching PNL data: {e}")
         return pd.DataFrame()
 
-# Sample Daily PNL Data for Graphs
-def generate_sample_pnl_data():
-    dates = pd.date_range(start="2025-01-01", end="2025-01-15", freq="D")
-    pnl_data = {
-        "Date": dates,
-        "Daily PNL": [random.uniform(-50, 50) for _ in dates],
-        "Cumulative PNL": [sum(random.uniform(-50, 50) for _ in range(i)) for i in range(len(dates))],
-    }
-    return pd.DataFrame(pnl_data)
+# Plotting PNL Graphs
+def plot_pnl_graphs(df):
+    if df.empty:
+        st.warning("No data available for plotting.")
+        return
 
-# Graph functions
-def plot_daily_pnl(data):
-    fig = px.bar(data, x="Date", y="Daily PNL", title="Daily PNL", color="Daily PNL", color_continuous_scale="RdYlGn")
-    st.plotly_chart(fig, use_container_width=True)
+    daily_fig = px.bar(
+        df, x="Date", y="PNL", title="Daily PNL", color="PNL", color_continuous_scale="RdYlGn",
+        labels={"PNL": "Profit/Loss (USDT)", "Date": "Date"}
+    )
+    st.plotly_chart(daily_fig, use_container_width=True)
 
-def plot_cumulative_pnl(data):
-    fig = px.line(data, x="Date", y="Cumulative PNL", title="Cumulative PNL", markers=True)
-    st.plotly_chart(fig, use_container_width=True)
+    cumulative_fig = px.line(
+        df, x="Date", y="Cumulative PNL", title="Cumulative PNL",
+        labels={"Cumulative PNL": "Cumulative Profit/Loss (USDT)", "Date": "Date"}, markers=True
+    )
+    st.plotly_chart(cumulative_fig, use_container_width=True)
 
 # Rendering Sections
 if choice == "Account Summary":
@@ -187,38 +177,20 @@ elif choice == "Open Orders":
 
 elif choice == "Order History":
     st.subheader("Order History")
-    order_history_data = fetch_order_history()
-    if not order_history_data.empty:
-        st.dataframe(order_history_data, use_container_width=True)
-    else:
-        st.warning("No order history available.")
-
-elif choice == "Trade History":
-    st.subheader("Trade History")
     trade_history_data = fetch_trade_history()
     if not trade_history_data.empty:
         st.dataframe(trade_history_data, use_container_width=True)
-        st.markdown("### Top 5 Profit-Making Positions")
-        top_profit, top_loss = get_top_positions()
-        if not top_profit.empty:
-            st.dataframe(top_profit, use_container_width=True)
-        else:
-            st.warning("No profit-making positions found.")
-        st.markdown("### Top 5 Loss-Making Positions")
-        if not top_loss.empty:
-            st.dataframe(top_loss, use_container_width=True)
-        else:
-            st.warning("No loss-making positions found.")
     else:
-        st.warning("No trade history available.")
+        st.warning("No order history available.")
 
 elif choice == "Analytics":
     st.subheader("Analytics")
-    pnl_data = generate_sample_pnl_data()
-    st.markdown("### Daily PNL")
-    plot_daily_pnl(pnl_data)
-    st.markdown("### Cumulative PNL")
-    plot_cumulative_pnl(pnl_data)
+    pnl_data = fetch_pnl_data()
+    if not pnl_data.empty:
+        st.markdown("### Daily PNL")
+        plot_pnl_graphs(pnl_data)
+    else:
+        st.warning("No PNL data available.")
 
 # Footer
 st.markdown("---")
