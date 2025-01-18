@@ -6,7 +6,8 @@ from binance.exceptions import BinanceAPIException, BinanceRequestException
 from datetime import datetime, timedelta
 
 # Set Streamlit page configuration
-st.set_page_config(page_title="Binance Clone Dashboard", layout="wide")
+st.set_page_config(page_title="Binance Our Dashboard", layout="wide")
+
 
 # Testnet API Keys
 API_KEY = "715ed9f915fb6ca1e1528205a1bdb4dd5253d855460957a9aa50bca7a100189d"
@@ -20,9 +21,10 @@ except Exception as e:
     st.sidebar.error(f"Failed to initialize Binance Testnet client: {e}")
     st.stop()
 
+
 # Sidebar
 st.sidebar.image("https://upload.wikimedia.org/wikipedia/commons/4/4b/Binance_logo.png", width=200)
-st.sidebar.title("Binance Clone Dashboard")
+st.sidebar.title("Binance Our Dashboard")
 menu = ["Account Summary", "Positions", "Open Orders", "Order History", "Trade History", "Analytics"]
 choice = st.sidebar.radio("Navigation", menu)
 
@@ -32,10 +34,10 @@ def fetch_account_summary():
         account_info = client.futures_account_balance()
         margin_info = client.futures_account()
         balance_data = {
-            "Balance": round(float(account_info[0]["balance"].strip()), 2),
-            "Unrealized PNL": round(float(margin_info["totalUnrealizedProfit"].strip()), 2),
-            "Margin Balance": round(float(margin_info["totalMarginBalance"].strip()), 2),
-            "Available Balance": round(float(margin_info["availableBalance"].strip()), 2),
+            "Balance": round(float(account_info[0]["balance"]), 2),
+            "Unrealized PNL": round(float(margin_info["totalUnrealizedProfit"]), 2),
+            "Margin Balance": round(float(margin_info["totalMarginBalance"]), 2),
+            "Available Balance": round(float(margin_info["availableBalance"]), 2),
         }
         return balance_data
     except Exception as e:
@@ -62,7 +64,10 @@ def fetch_trade_history():
             }
             for trade in trades
         ]
-        return pd.DataFrame(trade_history)
+        df = pd.DataFrame(trade_history)
+        if df.empty:
+            st.warning("No trade history available.")
+        return df
     except (BinanceAPIException, BinanceRequestException) as e:
         st.error(f"Error fetching trade history: {e}")
         return pd.DataFrame()
@@ -132,23 +137,34 @@ def fetch_pnl_data():
         st.error(f"Error fetching PNL data: {e}")
         return pd.DataFrame()
 
-# Plotting PNL Graphs
-def plot_pnl_graphs(df):
+# Advanced Graphs for Analytics
+def plot_advanced_graphs(df):
     if df.empty:
         st.warning("No data available for plotting.")
         return
 
+    # Daily PNL Bar Chart
     daily_fig = px.bar(
         df, x="Date", y="PNL", title="Daily PNL", color="PNL", color_continuous_scale="RdYlGn",
         labels={"PNL": "Profit/Loss (USDT)", "Date": "Date"}
     )
     st.plotly_chart(daily_fig, use_container_width=True)
 
+    # Cumulative PNL Line Chart
     cumulative_fig = px.line(
         df, x="Date", y="Cumulative PNL", title="Cumulative PNL",
         labels={"Cumulative PNL": "Cumulative Profit/Loss (USDT)", "Date": "Date"}, markers=True
     )
     st.plotly_chart(cumulative_fig, use_container_width=True)
+
+    # Interactive Scatter Plot
+    scatter_fig = px.scatter(
+        df, x="Date", y="PNL", color="PNL",
+        title="Scatter Plot of PNL Over Time",
+        labels={"PNL": "Profit/Loss (USDT)", "Date": "Date"},
+        hover_data=["PNL"],
+    )
+    st.plotly_chart(scatter_fig, use_container_width=True)
 
 # Rendering Sections
 if choice == "Account Summary":
@@ -187,11 +203,11 @@ elif choice == "Analytics":
     st.subheader("Analytics")
     pnl_data = fetch_pnl_data()
     if not pnl_data.empty:
-        st.markdown("### Daily PNL")
-        plot_pnl_graphs(pnl_data)
+        st.markdown("### Advanced Analytics")
+        plot_advanced_graphs(pnl_data)
     else:
         st.warning("No PNL data available.")
 
 # Footer
 st.markdown("---")
-st.text("'The legacy of those who build is carried forward in what they create.'")
+st.text("")
