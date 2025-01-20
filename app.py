@@ -8,19 +8,17 @@ from datetime import datetime, timedelta
 # Set Streamlit page configuration
 st.set_page_config(page_title="Binance Our Dashboard", layout="wide")
 
+# Mainnet API Keys
+API_KEY = "443Hxwpu8HScJ46k2PjMBlHxxdeusOHFkcPxuNqZbtMQwbLLhUi5actRAKJJRGLx"
+API_SECRET = "hloRvODUJ5pY2GnqYlQEO1ejwB01nP8xeQ7x51W3ul0er1QtcTDFXpoU0urgoq0L"
 
-# Testnet API Keys
-API_KEY = "715ed9f915fb6ca1e1528205a1bdb4dd5253d855460957a9aa50bca7a100189d"
-API_SECRET = "8f1981470f0574e0ad56270ceb0272f9f5ffe0ac29187daf5aacfe28a0084f91"
-
-# Initialize Binance client for Testnet
+# Initialize Binance client for Mainnet
 try:
-    client = Client(api_key=API_KEY, api_secret=API_SECRET, testnet=True)  # Ensure testnet=True
-    st.sidebar.success("Connected to Binance Testnet successfully!")
+    client = Client(api_key=API_KEY, api_secret=API_SECRET)
+    st.sidebar.success("Connected to Binance Mainnet successfully!")
 except Exception as e:
-    st.sidebar.error(f"Failed to initialize Binance Testnet client: {e}")
+    st.sidebar.error(f"Failed to initialize Binance Mainnet client: {e}")
     st.stop()
-
 
 # Sidebar
 st.sidebar.image("https://upload.wikimedia.org/wikipedia/commons/4/4b/Binance_logo.png", width=200)
