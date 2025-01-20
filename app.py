@@ -5,6 +5,8 @@ from binance.client import Client
 from binance.exceptions import BinanceAPIException, BinanceRequestException
 from datetime import datetime, timedelta
 
+# Set Streamlit page configuration
+st.set_page_config(page_title="Binance Our Dashboard", layout="wide")
 
 import requests
 
@@ -29,8 +31,6 @@ st.sidebar.text(f"Your Current IP: {current_ip}")
 
 
 
-# Set Streamlit page configuration
-st.set_page_config(page_title="Binance Our Dashboard", layout="wide")
 
 # Mainnet API Keys
 API_KEY = "443Hxwpu8HScJ46k2PjMBlHxxdeusOHFkcPxuNqZbtMQwbLLhUi5actRAKJJRGLx"
