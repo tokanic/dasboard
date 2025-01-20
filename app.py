@@ -5,6 +5,39 @@ from binance.client import Client
 from binance.exceptions import BinanceAPIException, BinanceRequestException
 from datetime import datetime, timedelta
 
+
+import requests
+
+# Function to fetch current IP address
+def fetch_current_ip():
+    try:
+        response = requests.get("https://api.ipify.org?format=json")
+        if response.status_code == 200:
+            ip_address = response.json().get("ip", "Unknown IP")
+            return ip_address
+        else:
+            return "Unable to fetch IP"
+    except Exception as e:
+        return f"Error fetching IP: {e}"
+
+# Fetch the IP
+current_ip = fetch_current_ip()
+
+# Display the IP in the sidebar
+st.sidebar.text(f"Your Current IP: {current_ip}")
+
+# Function to fetch current IP address
+def fetch_current_ipv2():
+    try:
+        response = requests.get("https://api.ipify.org?format=json")
+        if response.status_code == 200:
+            return response.json().get("ip", "Unknown IP")
+        else:
+            return "Unable to fetch IP"
+    except Exception as e:
+        return f"Error fetching IP: {e}"
+
+
 # Set Streamlit page configuration
 st.set_page_config(page_title="Binance Our Dashboard", layout="wide")
 
