@@ -6,8 +6,85 @@ import requests
 from datetime import datetime
 import pytz
 
-# Configuration
-st.set_page_config(page_title="Binance Trading Dashboard", layout="wide")
+# Set page configuration
+st.set_page_config(page_title="🚀 Enhanced Binance Trading Dashboard", layout="wide")
+
+# Apply custom CSS for styling and animations
+st.markdown(
+    """
+    <style>
+    [data-testid="stAppViewContainer"] {
+        background: linear-gradient(to bottom right, #141e30, #243b55);
+        color: white;
+    }
+    [data-testid="stSidebar"] {
+        background: #141e30;
+        color: white;
+    }
+    .flashcard {
+        background: linear-gradient(to bottom right, #ff7e5f, #feb47b);
+        padding: 15px;
+        border-radius: 15px;
+        text-align: center;
+        font-size: 18px;
+        font-weight: bold;
+        color: white;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        margin-bottom: 15px;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+# Utility Functions
+def format_timestamp(timestamp):
+    """Convert timestamp to Indian Standard Time."""
+    try:
+        dt = datetime.fromtimestamp(timestamp / 1000, tz=pytz.UTC)
+        indian_tz = pytz.timezone('Asia/Kolkata')
+        indian_time = dt.astimezone(indian_tz)
+        return indian_time.strftime('%d %b %Y %I:%M:%S %p')
+    except Exception as e:
+        return f"Invalid Time ({e})"
+
+def fetch_data(endpoint):
+    """Fetch data from API with error handling."""
+    try:
+        response = requests.get(f"{API_SERVER}/{endpoint}")
+        response.raise_for_status()
+        return response.json()
+    except requests.exceptions.RequestException as e:
+        st.error(f"Error fetching data from {endpoint}: {e}")
+        return None
+
+# Reusable Components
+def display_dataframe_with_search(df, title):
+    """Display a searchable dataframe."""
+    st.subheader(title + " 🔎")
+    search_term = st.text_input(f"Search {title}:", "").lower()
+    if not df.empty:
+        if search_term:
+            df = df[df.apply(lambda row: row.astype(str).str.contains(search_term, case=False).any(), axis=1)]
+        st.dataframe(df.style.background_gradient(cmap='coolwarm'), use_container_width=True)
+    else:
+        st.warning(f"No data available for {title}.")
+
+def display_flashcard(title, value, emoji):
+    """Display a single flashcard."""
+    st.markdown(f"""
+    <div class="flashcard">
+        {emoji} {title}: <br><span style="font-size: 24px;">{value}</span>
+    </div>
+    """, unsafe_allow_html=True)
+
+def display_trend_graph(df, x_col, y_col, title):
+    """Create a trend graph."""
+    if x_col in df.columns and y_col in df.columns:
+        fig = px.line(df, x=x_col, y=y_col, title=title, markers=True)
+        st.plotly_chart(fig, use_container_width=True)
+    else:
+        st.warning(f"Missing columns for trend graph: {x_col}, {y_col}")
 
 # Flask API Server URL
 API_SERVER = "http://34.47.211.154:5000"  # Replace with your AWS server IP
@@ -20,8 +97,8 @@ def format_timestamp(timestamp):
         indian_tz = pytz.timezone('Asia/Kolkata')
         indian_time = dt.astimezone(indian_tz)
         return indian_time.strftime('%d %b %Y %I:%M:%S %p')
-    except:
-        return "Invalid Time"
+    except Exception as e:
+        return f"Invalid Time ({e})"
 
 def format_pnl(pnl):
     """Format PNL with color coding"""
@@ -33,8 +110,8 @@ def format_pnl(pnl):
             return f'<span style="color:red">{pnl:.2f} USDT</span>'
         else:
             return f'{pnl:.2f} USDT'
-    except:
-        return "N/A"
+    except Exception as e:
+        return f"N/A ({e})"
 
 def fetch_data(endpoint):
     """Fetch data from API with error handling"""
@@ -43,8 +120,9 @@ def fetch_data(endpoint):
         response.raise_for_status()
         return response.json()
     except requests.exceptions.RequestException as e:
-        st.error(f"Error fetching data: {e}")
+        st.error(f"Error fetching data from {endpoint}: {e}")
         return None
+
 
 def traders_with_open_positions():
     """Display Open Positions by Traders"""
@@ -71,6 +149,36 @@ def traders_with_open_positions():
             st.warning("No open positions found.")
     else:
         st.error("Failed to fetch open positions data.")
+
+
+def order_history():
+    """Display Order History."""
+    st.subheader("📜 Order History")
+    order_history_data = fetch_data("order_history")
+    if order_history_data:
+        df = pd.DataFrame(order_history_data)
+        if not df.empty:
+            display_dataframe_with_search(df, "Order History")
+        else:
+            st.warning("No order history found.")
+    else:
+        st.error("Failed to fetch order history data.")
+
+
+
+def trade_history():
+    """Display Trade History."""
+    st.subheader("📊 Trade History")
+    trade_history_data = fetch_data("trade_history")
+    if trade_history_data:
+        df = pd.DataFrame(trade_history_data)
+        if not df.empty:
+            display_dataframe_with_search(df, "Trade History")
+            display_trend_graph(df, "Time", "PNL", "Trade History PNL Over Time")
+        else:
+            st.warning("No trade history found.")
+    else:
+        st.error("Failed to fetch trade history data.")
 
 def closed_positions_cost_analysis():
     """Display Closed Positions Cost Analysis"""
@@ -319,44 +427,44 @@ def analytics():
     if not pnl_data and not positions_data:
         st.error("Failed to fetch analytics data. Please check the backend.")
 
-def trade_history():
-    """Comprehensive Trade History"""
-    st.subheader("Trade History")
-    trade_history_data = fetch_data("trade_history")
+# def trade_history():
+#     """Comprehensive Trade History"""
+#     st.subheader("Trade History")
+#     trade_history_data = fetch_data("trade_history")
 
-    if trade_history_data:
-        df = pd.DataFrame(trade_history_data)
-        if not df.empty:
-            # Convert timestamp to human-readable format if 'Time' column exists
-            if 'Time' in df.columns:
-                df['Time'] = pd.to_datetime(df['Time'], unit='ms', errors='coerce')
-                df['Time'] = df['Time'].dt.strftime(" %d %b %Y %I:%M:%S %p")  # Format properly
+#     if trade_history_data:
+#         df = pd.DataFrame(trade_history_data)
+#         if not df.empty:
+#             # Convert timestamp to human-readable format if 'Time' column exists
+#             if 'Time' in df.columns:
+#                 df['Time'] = pd.to_datetime(df['Time'], unit='ms', errors='coerce')
+#                 df['Time'] = df['Time'].dt.strftime(" %d %b %Y %I:%M:%S %p")  # Format properly
 
-            # Format PNL for better readability (Remove HTML tags)
-            if 'PNL' in df.columns:
-                df['PNL'] = df['PNL'].astype(float)
-                df['PNL'] = df['PNL'].map(lambda x: f"+{x:.2f} USDT" if x > 0 else f"{x:.2f} USDT")
+#             # Format PNL for better readability (Remove HTML tags)
+#             if 'PNL' in df.columns:
+#                 df['PNL'] = df['PNL'].astype(float)
+#                 df['PNL'] = df['PNL'].map(lambda x: f"+{x:.2f} USDT" if x > 0 else f"{x:.2f} USDT")
 
-            # Sort by time, latest first
-            df.sort_values(by='Time', ascending=False, inplace=True)
+#             # Sort by time, latest first
+#             df.sort_values(by='Time', ascending=False, inplace=True)
 
-            # Display DataFrame
-            st.dataframe(df, use_container_width=True, height=500)
+#             # Display DataFrame
+#             st.dataframe(df, use_container_width=True, height=500)
 
-            # PNL Distribution Visualization
-            if 'PNL' in df.columns:
-                fig = px.histogram(
-                    df, 
-                    x='PNL', 
-                    title='PNL Distribution', 
-                    labels={'PNL': 'Profit/Loss (USDT)'},
-                    color_discrete_sequence=['#636EFA']
-                )
-                st.plotly_chart(fig, use_container_width=True)
-        else:
-            st.warning("No trade history available.")
-    else:
-        st.warning("Failed to fetch trade history.")
+#             # PNL Distribution Visualization
+#             if 'PNL' in df.columns:
+#                 fig = px.histogram(
+#                     df, 
+#                     x='PNL', 
+#                     title='PNL Distribution', 
+#                     labels={'PNL': 'Profit/Loss (USDT)'},
+#                     color_discrete_sequence=['#636EFA']
+#                 )
+#                 st.plotly_chart(fig, use_container_width=True)
+#         else:
+#             st.warning("No trade history available.")
+#     else:
+#         st.warning("Failed to fetch trade history.")
 
 
 def closed_positions():
