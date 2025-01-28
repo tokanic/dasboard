@@ -6,3 +6,4 @@ pandas
 plotly
 binance
 python-binance
+matplotlib>=3.5
