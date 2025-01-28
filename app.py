@@ -46,6 +46,60 @@ def fetch_data(endpoint):
         st.error(f"Error fetching data: {e}")
         return None
 
+def traders_with_open_positions():
+    """Display Open Positions by Traders"""
+    st.subheader("Traders with Open Positions")
+    open_positions_data = fetch_data("open_positions")  # Replace with the correct API endpoint for open positions
+    
+    if open_positions_data:
+        df = pd.DataFrame(open_positions_data)
+        if not df.empty:
+            # Display Open Positions grouped by Trader
+            st.dataframe(df, use_container_width=True)
+            # Visualization: Group positions by Trader
+            grouped_data = df.groupby('Trader')['Size'].sum().reset_index()
+            fig = px.bar(
+                grouped_data,
+                x='Trader',
+                y='Size',
+                title='Open Positions Size by Trader',
+                labels={'Trader': 'Trader', 'Size': 'Position Size (USDT)'},
+                text='Size'
+            )
+            st.plotly_chart(fig, use_container_width=True)
+        else:
+            st.warning("No open positions found.")
+    else:
+        st.error("Failed to fetch open positions data.")
+
+def closed_positions_cost_analysis():
+    """Display Closed Positions Cost Analysis"""
+    st.subheader("Closed Positions Analysis")
+    closed_positions_data = fetch_data("closed_positions")  # Replace with the correct API endpoint for closed positions
+    
+    if closed_positions_data:
+        df = pd.DataFrame(closed_positions_data)
+        if not df.empty:
+            # Sort by Exit Time, latest first
+            df.sort_values(by='Exit Time', ascending=False, inplace=True)
+            
+            # Highlight Positions with Loss
+            df['Profit/Loss'] = df['PNL'].apply(lambda x: "Loss" if float(x) < 0 else "Profit")
+            st.dataframe(df, use_container_width=True)
+
+            # Visualization: Loss vs Profit
+            fig = px.pie(
+                df,
+                names='Profit/Loss',
+                title='Profit vs Loss in Closed Positions',
+                color_discrete_sequence=px.colors.qualitative.Safe
+            )
+            st.plotly_chart(fig, use_container_width=True)
+        else:
+            st.warning("No closed positions data found.")
+    else:
+        st.error("Failed to fetch closed positions data.")
+
 # Dashboard Sections
 def account_summary():
     """Comprehensive Account Summary"""
@@ -83,42 +137,88 @@ def positions():
             st.warning("No active positions found.")
 
 def open_orders():
-    """Open Orders Analysis"""
+    """Open Orders Analysis with Enhanced Visualization"""
     st.subheader("Open Orders")
-    open_orders_data = fetch_data("open_orders")
+    open_orders_data = fetch_data("open_orders")  # Ensure correct API endpoint
     
     if open_orders_data:
         df = pd.DataFrame(open_orders_data)
+
+        # Print the available columns for debugging
+        st.write("Columns in Open Orders Data:", df.columns.tolist())
+
         if not df.empty:
-            st.dataframe(df, use_container_width=True)
+            # Check if 'Order Time' exists before processing
+            if 'Order Time' in df.columns:
+                df['Order Time'] = pd.to_datetime(df['Order Time'], unit='ms', errors='coerce')
+                df['Order Time'] = df['Order Time'].dt.strftime('%d %b %Y %I:%M:%S %p')
+                df.sort_values(by='Order Time', ascending=False, inplace=True)
+            else:
+                st.warning("'Order Time' column is missing from the API response.")
+
+            # Display DataFrame
+            st.dataframe(df, use_container_width=True, height=500)
+
+            # Order Status Distribution Pie Chart
+            if 'Status' in df.columns:
+                status_fig = px.pie(
+                    df,
+                    names='Status',
+                    title='Order Status Distribution',
+                    color_discrete_sequence=px.colors.qualitative.Set3
+                )
+                st.plotly_chart(status_fig, use_container_width=True)
+
+            # Order Type Distribution Bar Chart
+            if 'Type' in df.columns:
+                type_fig = px.bar(
+                    df,
+                    x=df['Type'].value_counts().index,
+                    y=df['Type'].value_counts().values,
+                    title='Order Type Distribution',
+                    labels={'x': 'Order Type', 'y': 'Count'},
+                    text_auto=True
+                )
+                st.plotly_chart(type_fig, use_container_width=True)
+
         else:
             st.warning("No open orders found.")
+    else:
+        st.warning("Failed to fetch open orders.")
+
 
 def position_history():
-    """Display Position History"""
+    """Display Position History with Improved Formatting"""
     st.subheader("Position History")
-    position_history_data = fetch_data("positions")  # Adjust to fetch the correct endpoint for position history
+    position_history_data = fetch_data("position_history")  # Ensure correct API endpoint
 
     if position_history_data:
         df = pd.DataFrame(position_history_data)
         if not df.empty:
-            # Check if 'Time' column exists
-            if 'Time' in df.columns:
-                # Convert timestamp to human-readable format
-                df['Time'] = df['Time'].apply(format_timestamp)
+            # Convert timestamps to a readable format
+            if 'Entry Time' in df.columns:
+                df['Entry Time'] = pd.to_datetime(df['Entry Time'], unit='ms', errors='coerce')
+                df['Entry Time'] = df['Entry Time'].dt.strftime('%d %b %Y %I:%M:%S %p')
 
-                # Sort by time, latest first
-                df.sort_values(by='Time', ascending=False, inplace=True)
+            if 'Exit Time' in df.columns:
+                df['Exit Time'] = pd.to_datetime(df['Exit Time'], unit='ms', errors='coerce')
+                df['Exit Time'] = df['Exit Time'].dt.strftime('%d %b %Y %I:%M:%S %p')
 
-            # Format PNL with color coding if it exists
+            # Convert PNL to float and format properly
             if 'PNL' in df.columns:
-                df['PNL'] = df['PNL'].apply(format_pnl)
+                df['PNL'] = pd.to_numeric(df['PNL'], errors='coerce')
+                df['PNL'] = df['PNL'].apply(lambda x: f"+{x:.2f} USDT" if x > 0 else f"{x:.2f} USDT")
+
+            # Sort by latest exit time first
+            if 'Exit Time' in df.columns:
+                df.sort_values(by='Exit Time', ascending=False, inplace=True)
 
             # Display DataFrame
             st.dataframe(df, use_container_width=True, height=500)
 
             # PNL Distribution Chart
             if 'PNL' in df.columns:
+                df['PNL'] = df['PNL'].str.replace(" USDT", "").astype(float)  # Remove text for plotting
                 fig = px.histogram(
                     df,
                     x='PNL',
@@ -136,15 +236,17 @@ def position_history():
                     y='Exit Price',
                     color='Symbol',
                     size='PNL',
-                    hover_data=['Entry Time', 'Exit Time'] if 'Entry Time' in df.columns and 'Exit Time' in df.columns else None,
+                    hover_data=['Entry Time', 'Exit Time'],
                     title='Entry vs Exit Price by Symbol',
                     labels={'Entry Price': 'Entry Price (USDT)', 'Exit Price': 'Exit Price (USDT)'}
                 )
                 st.plotly_chart(scatter_fig, use_container_width=True)
+
         else:
             st.warning("No position history available.")
     else:
         st.warning("Failed to fetch position history.")
+
 
 def analytics():
     """Trading Analytics"""
@@ -225,16 +327,18 @@ def trade_history():
     if trade_history_data:
         df = pd.DataFrame(trade_history_data)
         if not df.empty:
-            # Convert timestamp to human-readable format
+            # Convert timestamp to human-readable format if 'Time' column exists
             if 'Time' in df.columns:
-                df['Time'] = df['Time'].apply(format_timestamp)
+                df['Time'] = pd.to_datetime(df['Time'], unit='ms', errors='coerce')
+                df['Time'] = df['Time'].dt.strftime(" %d %b %Y %I:%M:%S %p")  # Format properly
+
+            # Format PNL for better readability (Remove HTML tags)
+            if 'PNL' in df.columns:
+                df['PNL'] = df['PNL'].astype(float)
+                df['PNL'] = df['PNL'].map(lambda x: f"+{x:.2f} USDT" if x > 0 else f"{x:.2f} USDT")
 
             # Sort by time, latest first
             df.sort_values(by='Time', ascending=False, inplace=True)
-
-            # Format PNL with color coding
-            if 'PNL' in df.columns:
-                df['PNL'] = df['PNL'].apply(format_pnl)
 
             # Display DataFrame
             st.dataframe(df, use_container_width=True, height=500)
@@ -253,6 +357,7 @@ def trade_history():
             st.warning("No trade history available.")
     else:
         st.warning("Failed to fetch trade history.")
+
 
 def closed_positions():
     """Display Closed Positions"""
@@ -354,118 +459,6 @@ def order_history():
     except Exception as e:
         st.error(f"An unexpected error occurred: {e}")
 
-# def analytics():
-#     """Trading Analytics"""
-#     st.subheader("Trading Analytics")
-#     pnl_data = fetch_data("pnl_analytics")
-#     positions_data = fetch_data("positions")
-
-#     if pnl_data:
-#         pnl_df = pd.DataFrame(pnl_data)
-#         if not pnl_df.empty:
-#             # Sort by Date, latest first
-#             pnl_df['Date'] = pd.to_datetime(pnl_df['Date'])  # Ensure correct datetime format
-#             pnl_df.sort_values(by='Date', ascending=False, inplace=True)
-
-#             # Daily PNL Chart
-#             daily_fig = px.bar(
-#                 pnl_df,
-#                 x='Date',
-#                 y='PNL',
-#                 title='Daily Profit/Loss (PNL)',
-#                 labels={'Date': 'Date', 'PNL': 'Profit/Loss (USDT)'},
-#                 color='PNL',
-#                 color_continuous_scale=px.colors.sequential.Viridis
-#             )
-#             daily_fig.update_layout(xaxis_title='Date', yaxis_title='Profit/Loss (USDT)', xaxis=dict(tickformat='%b %d'))
-#             st.plotly_chart(daily_fig, use_container_width=True)
-
-#             # Cumulative PNL Chart
-#             pnl_df['Cumulative PNL'] = pnl_df['PNL'].cumsum()
-#             cumulative_fig = px.line(
-#                 pnl_df,
-#                 x='Date',
-#                 y='Cumulative PNL',
-#                 title='Cumulative Profit/Loss Over Time',
-#                 labels={'Date': 'Date', 'Cumulative PNL': 'Cumulative Profit/Loss (USDT)'},
-#                 line_shape='linear',
-#                 markers=True
-#             )
-#             cumulative_fig.update_layout(xaxis_title='Date', yaxis_title='Cumulative Profit/Loss (USDT)', xaxis=dict(tickformat='%b %d'))
-#             st.plotly_chart(cumulative_fig, use_container_width=True)
-
-#     if positions_data:
-#         positions_df = pd.DataFrame(positions_data)
-#         if not positions_df.empty:
-#             # Pie Chart: Current Holdings
-#             pie_fig = px.pie(
-#                 positions_df,
-#                 names='Symbol',
-#                 values='Size',
-#                 title='Current Holdings Distribution',
-#                 color_discrete_sequence=px.colors.qualitative.Set3
-#             )
-#             st.plotly_chart(pie_fig, use_container_width=True)
-
-#             # Line Chart: Symbol-Wise Profit
-#             if 'PNL' in positions_df.columns and 'Symbol' in positions_df.columns:
-#                 positions_df['PNL'] = positions_df['PNL'].astype(float)
-#                 profit_line_fig = px.line(
-#                     positions_df,
-#                     x='Symbol',
-#                     y='PNL',
-#                     title='Profit by Symbol',
-#                     labels={'Symbol': 'Crypto Symbol', 'PNL': 'Profit/Loss (USDT)'},
-#                     markers=True,
-#                     line_shape='linear'
-#                 )
-#                 profit_line_fig.update_layout(xaxis_title='Crypto Symbol', yaxis_title='Profit/Loss (USDT)')
-#                 st.plotly_chart(profit_line_fig, use_container_width=True)
-
-#      # Scatter Plot: PNL by Symbol
-#             if 'Symbol' in pnl_df.columns:
-#                 pnl_df['Size'] = pnl_df['PNL'].apply(lambda x: max(0.1, abs(x)))  # Ensure size > 0 for visualization
-#                 scatter_fig = px.scatter(
-#                     pnl_df,
-#                     x='Date',
-#                     y='PNL',
-#                     color='Symbol',
-#                     size='Size',
-#                     title='PNL by Symbol Over Time',
-#                     labels={'Date': 'Date', 'PNL': 'Profit/Loss (USDT)', 'Symbol': 'Crypto Symbol'},
-#                     hover_data=['PNL']
-#                 )
-#                 st.plotly_chart(scatter_fig, use_container_width=True)
-
-#     if positions_data:
-#         positions_df = pd.DataFrame(positions_data)
-#         if not positions_df.empty:
-#             # Pie Chart: Current Holdings
-#             pie_fig = px.pie(
-#                 positions_df,
-#                 names='Symbol',
-#                 values='Size',
-#                 title='Current Holdings Distribution',
-#                 color_discrete_sequence=px.colors.qualitative.Set3
-#             )
-#             st.plotly_chart(pie_fig, use_container_width=True)
-
-#             # Line Chart: Profit Over Time
-#             if 'PNL' in positions_df.columns and 'Symbol' in positions_df.columns:
-#                 profit_line_fig = px.line(
-#                     positions_df,
-#                     x='Symbol',
-#                     y='PNL',
-#                     title='Profit by Symbol',
-#                     labels={'Symbol': 'Crypto Symbol', 'PNL': 'Profit/Loss (USDT)'},
-#                     markers=True,
-#                     line_shape='spline'
-#                 )
-#                 st.plotly_chart(profit_line_fig, use_container_width=True)
-
-#     if not pnl_data and not positions_data:
-#         st.error("Failed to fetch analytics data. Please check the backend.")
-        
 # Main Dashboard
 def main():
     st.sidebar.image("https://upload.wikimedia.org/wikipedia/commons/4/4b/Binance_logo.png", width=200)
@@ -478,8 +471,9 @@ def main():
         "Open Orders", 
         "Trade History", 
         "Position History",
-        # "Order History",
-        "Analytics"
+        "Analytics",
+        "Traders with Open Positions",  # New Page
+        "Closed Positions Analysis"    # New Page
     ]
     choice = st.sidebar.radio("Navigation", menu)
     
@@ -494,10 +488,12 @@ def main():
         trade_history()
     elif choice == "Position History":
         position_history()
-    elif choice == "Order History":
-        order_history()
     elif choice == "Analytics":
         analytics()
+    elif choice == "Traders with Open Positions":
+        traders_with_open_positions()  # Call the new function
+    elif choice == "Closed Positions Analysis":
+        closed_positions_cost_analysis()  # Call the new function
     st.markdown("---")
     st.text("© 2025 Binance Trading Dashboard")
 
