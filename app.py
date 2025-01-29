@@ -9,28 +9,113 @@ import pytz
 # Set page configuration
 st.set_page_config(page_title="🚀 Enhanced Binance Trading Dashboard", layout="wide")
 
-# Apply custom CSS for styling and animations
 st.markdown(
     """
     <style>
+    /* Main app container styling */
     [data-testid="stAppViewContainer"] {
-        background: linear-gradient(to bottom right, #141e30, #243b55);
-        color: white;
+        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+        color: #ffffff;
+        min-height: 100vh;
     }
+
+    /* Sidebar styling */
     [data-testid="stSidebar"] {
-        background: #141e30;
-        color: white;
+        background: rgba(16, 22, 36, 0.8);
+        backdrop-filter: blur(10px);
+        border-right: 1px solid rgba(255, 255, 255, 0.1);
     }
+
+    /* Sidebar header styling */
+    [data-testid="stSidebar"] .sidebar-content {
+        padding: 20px;
+    }
+
+    /* Flashcard styling with animations */
     .flashcard {
-        background: linear-gradient(to bottom right, #ff7e5f, #feb47b);
-        padding: 15px;
+        background: linear-gradient(145deg, #ff6b6b, #ff8e8e);
+        padding: 25px;
         border-radius: 15px;
-        text-align: center;
-        font-size: 18px;
-        font-weight: bold;
+        margin: 15px 0;
         color: white;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        margin-bottom: 15px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        transform-style: preserve-3d;
+        transition: all 0.3s ease;
+        cursor: pointer;
+        min-height: 150px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        font-size: 1.2rem;
+    }
+
+    /* Hover effect for flashcard */
+    .flashcard:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2);
+    }
+
+    /* Flip animation for flashcard */
+    .flashcard.flip {
+        transform: rotateY(180deg);
+    }
+
+    /* Keyframes for flip animation */
+    @keyframes flip {
+        from { transform: rotateY(0); }
+        to { transform: rotateY(180deg); }
+    }
+
+    /* General text styling */
+    body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        line-height: 1.6;
+    }
+
+    /* Header styling */
+    h1, h2, h3 {
+        color: #ff6b6b;
+        margin-bottom: 1rem;
+    }
+
+    /* Button styling */
+    .stButton>button {
+        background: linear-gradient(45deg, #ff6b6b, #ff8e8e);
+        color: white;
+        border: none;
+        border-radius: 25px;
+        padding: 10px 25px;
+        font-weight: bold;
+        transition: all 0.3s ease;
+    }
+
+    /* Button hover effect */
+    .stButton>button:hover {
+        transform: scale(1.05);
+        box-shadow: 0 5px 15px rgba(255, 107, 107, 0.4);
+    }
+
+    /* Input field styling */
+    .stTextInput>div>div>input {
+        background: rgba(255, 255, 255, 0.1);
+        color: white;
+        border-radius: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    /* Custom scrollbar */
+    ::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+        background: rgba(255, 255, 255, 0.05);
+    }
+
+    ::-webkit-scrollbar-thumb {
+        background: #ff6b6b;
+        border-radius: 4px;
     }
     </style>
     """,
