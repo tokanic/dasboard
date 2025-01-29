@@ -580,7 +580,6 @@ def main():
         "Trade History", 
         "Position History",
         "Analytics",
-        "Traders with Open Positions",  # New Page
         "Closed Positions Analysis"    # New Page
     ]
     choice = st.sidebar.radio("Navigation", menu)
