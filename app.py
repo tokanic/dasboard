@@ -9,133 +9,133 @@ import pytz
 # Set page configuration
 st.set_page_config(page_title="🚀 Enhanced Binance Trading Dashboard", layout="wide")
 
-st.markdown(
-    """
-<style>
-/* Main app container styling with improved contrast */
-[data-testid="stAppViewContainer"] {
-    background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
-    color: #ffffff;
-    min-height: 100vh;
-}
+# st.markdown(
+#     """
+# <style>
+# /* Main app container styling with improved contrast */
+# [data-testid="stAppViewContainer"] {
+#     background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
+#     color: #ffffff;
+#     min-height: 100vh;
+# }
 
-/* Sidebar styling with frosted glass effect */
-[data-testid="stSidebar"] {
-    background: rgba(20, 20, 30, 0.9);
-    backdrop-filter: blur(15px);
-    border-right: 2px solid rgba(255, 255, 255, 0.1);
-}
+# /* Sidebar styling with frosted glass effect */
+# [data-testid="stSidebar"] {
+#     background: rgba(20, 20, 30, 0.9);
+#     backdrop-filter: blur(15px);
+#     border-right: 2px solid rgba(255, 255, 255, 0.1);
+# }
 
-/* Sidebar header styling */
-[data-testid="stSidebar"] .sidebar-content {
-    padding: 20px;
-}
+# /* Sidebar header styling */
+# [data-testid="stSidebar"] .sidebar-content {
+#     padding: 20px;
+# }
 
-/* Flashcard styling with improved visibility */
-.flashcard {
-    background: linear-gradient(145deg, #ff007f, #ff4d4d);
-    padding: 25px;
-    border-radius: 15px;
-    margin: 15px 0;
-    color: #ffffff;
-    box-shadow: 0 0 20px rgba(255, 0, 127, 0.7);
-    transform-style: preserve-3d;
-    transition: all 0.4s ease-in-out;
-    cursor: pointer;
-    min-height: 150px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    font-size: 1.4rem;
-    font-weight: bold;
-    text-shadow: 2px 2px 15px rgba(255, 255, 255, 0.9);
-}
+# /* Flashcard styling with improved visibility */
+# .flashcard {
+#     background: linear-gradient(145deg, #ff007f, #ff4d4d);
+#     padding: 25px;
+#     border-radius: 15px;
+#     margin: 15px 0;
+#     color: #ffffff;
+#     box-shadow: 0 0 20px rgba(255, 0, 127, 0.7);
+#     transform-style: preserve-3d;
+#     transition: all 0.4s ease-in-out;
+#     cursor: pointer;
+#     min-height: 150px;
+#     display: flex;
+#     align-items: center;
+#     justify-content: center;
+#     text-align: center;
+#     font-size: 1.4rem;
+#     font-weight: bold;
+#     text-shadow: 2px 2px 15px rgba(255, 255, 255, 0.9);
+# }
 
-/* Hover effect for flashcard */
-.flashcard:hover {
-    transform: scale(1.05);
-    box-shadow: 0 0 25px rgba(255, 0, 127, 0.9);
-}
+# /* Hover effect for flashcard */
+# .flashcard:hover {
+#     transform: scale(1.05);
+#     box-shadow: 0 0 25px rgba(255, 0, 127, 0.9);
+# }
 
-/* Header styling with improved visibility */
-h1, h2, h3 {
-    background: none;
-    color: #ffffff;
-    font-weight: bold;
-    text-shadow: 3px 3px 8px rgba(255, 255, 255, 0.6);
-}
+# /* Header styling with improved visibility */
+# h1, h2, h3 {
+#     background: none;
+#     color: #ffffff;
+#     font-weight: bold;
+#     text-shadow: 3px 3px 8px rgba(255, 255, 255, 0.6);
+# }
 
-/* Button styling with strong contrast */
-.stButton>button {
-    background: linear-gradient(45deg, #ff007f, #ff4d4d);
-    color: white;
-    border: none;
-    border-radius: 25px;
-    padding: 12px 28px;
-    font-weight: bold;
-    font-size: 16px;
-    text-transform: uppercase;
-    transition: all 0.3s ease-in-out;
-    box-shadow: 0 5px 15px rgba(255, 0, 127, 0.7);
-    cursor: pointer;
-}
+# /* Button styling with strong contrast */
+# .stButton>button {
+#     background: linear-gradient(45deg, #ff007f, #ff4d4d);
+#     color: white;
+#     border: none;
+#     border-radius: 25px;
+#     padding: 12px 28px;
+#     font-weight: bold;
+#     font-size: 16px;
+#     text-transform: uppercase;
+#     transition: all 0.3s ease-in-out;
+#     box-shadow: 0 5px 15px rgba(255, 0, 127, 0.7);
+#     cursor: pointer;
+# }
 
-/* Button hover effect */
-.stButton>button:hover {
-    transform: scale(1.1);
-    box-shadow: 0 5px 20px rgba(255, 0, 127, 1);
-}
+# /* Button hover effect */
+# .stButton>button:hover {
+#     transform: scale(1.1);
+#     box-shadow: 0 5px 20px rgba(255, 0, 127, 1);
+# }
 
-/* Input field styling with enhanced contrast */
-.stTextInput>div>div>input {
-    background: rgba(255, 255, 255, 0.15);
-    color: #ffffff;
-    border-radius: 10px;
-    border: 1px solid rgba(255, 255, 255, 0.4);
-    padding: 10px;
-    font-weight: bold;
-}
+# /* Input field styling with enhanced contrast */
+# .stTextInput>div>div>input {
+#     background: rgba(255, 255, 255, 0.15);
+#     color: #ffffff;
+#     border-radius: 10px;
+#     border: 1px solid rgba(255, 255, 255, 0.4);
+#     padding: 10px;
+#     font-weight: bold;
+# }
 
-/* Custom scrollbar with neon effect */
-::-webkit-scrollbar {
-    width: 10px;
-}
+# /* Custom scrollbar with neon effect */
+# ::-webkit-scrollbar {
+#     width: 10px;
+# }
 
-::-webkit-scrollbar-track {
-    background: rgba(255, 255, 255, 0.1);
-}
+# ::-webkit-scrollbar-track {
+#     background: rgba(255, 255, 255, 0.1);
+# }
 
-::-webkit-scrollbar-thumb {
-    background: linear-gradient(180deg, #ff007f, #ff4d4d);
-    border-radius: 5px;
-}
+# ::-webkit-scrollbar-thumb {
+#     background: linear-gradient(180deg, #ff007f, #ff4d4d);
+#     border-radius: 5px;
+# }
 
-/* Mobile Optimizations */
-@media (max-width: 768px) {
-    /* Adjust Flashcard for mobile */
-    .flashcard {
-        font-size: 1.2rem;
-        padding: 20px;
-    }
+# /* Mobile Optimizations */
+# @media (max-width: 768px) {
+#     /* Adjust Flashcard for mobile */
+#     .flashcard {
+#         font-size: 1.2rem;
+#         padding: 20px;
+#     }
 
-    /* Improve button touchability */
-    .stButton>button {
-        padding: 12px 24px;
-        font-size: 15px;
-    }
+#     /* Improve button touchability */
+#     .stButton>button {
+#         padding: 12px 24px;
+#         font-size: 15px;
+#     }
 
-    /* Ensure headers are visible */
-    h1, h2, h3 {
-        font-size: 1.4rem;
-        text-shadow: 2px 2px 10px rgba(255, 255, 255, 0.8);
-    }
-}
-</style>
+#     /* Ensure headers are visible */
+#     h1, h2, h3 {
+#         font-size: 1.4rem;
+#         text-shadow: 2px 2px 10px rgba(255, 255, 255, 0.8);
+#     }
+# }
+# </style>
 
-    """,
-    unsafe_allow_html=True
-)
+#     """,
+#     unsafe_allow_html=True
+# )
 
 # Utility Functions
 def format_timestamp(timestamp):
